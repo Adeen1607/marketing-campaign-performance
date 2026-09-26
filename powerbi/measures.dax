@@ -1,0 +1,48 @@
+Contacts :=
+COUNTROWS ( fact_campaign_contacts )
+
+Conversions :=
+SUM ( fact_campaign_contacts[converted] )
+
+Conversion Rate :=
+DIVIDE ( [Conversions], [Contacts] )
+
+Non-conversions :=
+[Contacts] - [Conversions]
+
+Average Contact Attempts :=
+AVERAGE ( fact_campaign_contacts[campaign] )
+
+Contacts per Conversion :=
+DIVIDE ( [Contacts], [Conversions] )
+
+Previously Contacted Clients :=
+CALCULATE (
+    [Contacts],
+    fact_campaign_contacts[prior_contacted] = TRUE ()
+)
+
+Previously Contacted Conversion Rate :=
+CALCULATE (
+    [Conversion Rate],
+    fact_campaign_contacts[prior_contacted] = TRUE ()
+)
+
+Average Client Balance :=
+AVERAGE ( fact_campaign_contacts[balance] )
+
+Housing Loan Clients :=
+CALCULATE (
+    [Contacts],
+    fact_campaign_contacts[housing] = "yes"
+)
+
+Personal Loan Clients :=
+CALCULATE (
+    [Contacts],
+    fact_campaign_contacts[loan] = "yes"
+)
+
+-- Duration is descriptive only because it is known after a call ends.
+Average Completed Call Duration :=
+AVERAGE ( fact_campaign_contacts[duration] )
