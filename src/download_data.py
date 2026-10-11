@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import io
 import shutil
 import zipfile
 from pathlib import Path
@@ -11,7 +12,7 @@ import requests
 
 
 URL = "https://archive.ics.uci.edu/static/public/222/bank+marketing.zip"
-MEMBER = "bank/bank-full.csv"
+MEMBER = "bank-full.csv"
 
 
 def download(destination: Path) -> Path:
@@ -28,10 +29,14 @@ def download(destination: Path) -> Path:
         raise ValueError("Downloaded file is not a valid ZIP archive.")
 
     with zipfile.ZipFile(archive_path) as archive:
-        if MEMBER not in archive.namelist():
-            raise ValueError(f"Expected {MEMBER!r} in source archive.")
-        with archive.open(MEMBER) as source, output_path.open("wb") as target:
-            shutil.copyfileobj(source, target)
+        # UCI distributes bank-full.csv inside bank.zip, itself in the outer ZIP.
+        if "bank.zip" not in archive.namelist():
+            raise ValueError("Expected bank.zip in the UCI source archive.")
+        with zipfile.ZipFile(io.BytesIO(archive.read("bank.zip"))) as bank:
+            if MEMBER not in bank.namelist():
+                raise ValueError(f"Expected {MEMBER!r} in bank.zip.")
+            with bank.open(MEMBER) as source, output_path.open("wb") as target:
+                shutil.copyfileobj(source, target)
 
     archive_path.unlink()
     print(f"Downloaded dataset to {output_path}")
