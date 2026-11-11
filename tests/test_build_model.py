@@ -43,3 +43,14 @@ def test_invalid_numeric_inputs_fail_before_banding(tmp_path, field, value):
 def test_zero_duration_is_a_valid_completed_contact(tmp_path):
     result = load_contacts(source_csv(tmp_path, duration=0))
     assert result["duration_band"].iloc[0] == "0-60s"
+
+
+@pytest.mark.parametrize("value", [None, "bad", -2])
+def test_missing_or_invalid_prior_contact_days_are_not_counted_as_contacted(tmp_path, value):
+    with pytest.raises(ValueError, match="pdays must be finite"):
+        load_contacts(source_csv(tmp_path, pdays=value))
+
+
+def test_prior_contact_sentinel_is_respected(tmp_path):
+    assert not bool(load_contacts(source_csv(tmp_path, pdays=-1))["prior_contacted"].iloc[0])
+    assert bool(load_contacts(source_csv(tmp_path, pdays=10))["prior_contacted"].iloc[0])
