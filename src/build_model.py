@@ -23,6 +23,11 @@ def load_contacts(path: Path) -> pd.DataFrame:
         raise ValueError(f"Missing expected columns: {missing}")
     if not frame["y"].isin(["yes", "no"]).all():
         raise ValueError("Target y must contain only yes and no.")
+    invalid_months = sorted({
+        str(value) for value in frame["month"].dropna() if value not in MONTH_ORDER
+    })
+    if frame["month"].isna().any() or invalid_months:
+        raise ValueError(f"Invalid month values: {invalid_months}")
 
     frame = frame.copy()
     frame.insert(0, "contact_id", range(1, len(frame) + 1))
