@@ -29,3 +29,17 @@ def test_valid_month_maps_to_calendar_order(tmp_path):
 def test_invalid_month_fails_instead_of_becoming_missing_kpi(tmp_path, month):
     with pytest.raises(ValueError, match="Invalid month values"):
         load_contacts(source_csv(tmp_path, month=month))
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [("campaign", 0), ("campaign", "bad"), ("age", 17), ("duration", -1)],
+)
+def test_invalid_numeric_inputs_fail_before_banding(tmp_path, field, value):
+    with pytest.raises(ValueError, match=f"{field} must be finite"):
+        load_contacts(source_csv(tmp_path, **{field: value}))
+
+
+def test_zero_duration_is_a_valid_completed_contact(tmp_path):
+    result = load_contacts(source_csv(tmp_path, duration=0))
+    assert result["duration_band"].iloc[0] == "0-60s"
