@@ -23,11 +23,31 @@ def load_contacts(path: Path) -> pd.DataFrame:
         raise ValueError(f"Missing expected columns: {missing}")
     if not frame["y"].isin(["yes", "no"]).all():
         raise ValueError("Target y must contain only yes and no.")
+    invalid_months = sorted({
+        str(value) for value in frame["month"].dropna() if value not in MONTH_ORDER
+    })
+    if frame["month"].isna().any() or invalid_months:
+        raise ValueError(f"Invalid month values: {invalid_months}")
+    for column, minimum in (("campaign", 1), ("age", 18), ("duration", 0)):
+        numeric = pd.to_numeric(frame[column], errors="coerce")
+        if (
+            numeric.isna().any()
+            or numeric.lt(minimum).any()
+            or numeric.isin([float("inf"), float("-inf")]).any()
+        ):
+            raise ValueError(f"{column} must be finite and at least {minimum}")
 
     frame = frame.copy()
     frame.insert(0, "contact_id", range(1, len(frame) + 1))
     frame["converted"] = frame["y"].eq("yes").astype(int)
-    frame["prior_contacted"] = frame["pdays"].ne(-1)
+    days_since_contact = pd.to_numeric(frame["pdays"], errors="coerce")
+    if (
+        days_since_contact.isna().any()
+        or days_since_contact.lt(-1).any()
+        or days_since_contact.isin([float("inf"), float("-inf")]).any()
+    ):
+        raise ValueError("pdays must be finite and at least -1")
+    frame["prior_contacted"] = days_since_contact.ne(-1)
     frame["contact_attempt_band"] = pd.cut(
         frame["campaign"],
         bins=[0, 1, 2, 3, 5, float("inf")],
